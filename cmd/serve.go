@@ -75,6 +75,7 @@ func serve(cmd *cobra.Command, args []string) {
 
 	for {
 		listenStr := fmt.Sprintf(":%s", cfg.Port)
+		title := cfg.Title
 
 		srv := &http.Server{
 			Addr:    listenStr,
@@ -82,6 +83,9 @@ func serve(cmd *cobra.Command, args []string) {
 		}
 
 		go func() {
+
+			log.Println("Title: ", title)
+
 			log.Println("API listening on", listenStr)
 			if err = srv.ListenAndServe(); err != nil {
 				// dont panic here, or you'll kill the whole application due to no recover()!

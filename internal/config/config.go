@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	Port string `mapstructure:"port"`
+	Port  string `mapstructure:"port"`
+	Title string `mapstructure:"title"`
 }
 
 func (c *Config) InitConfig(onChange chan struct{}) {

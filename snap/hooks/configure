@@ -7,3 +7,8 @@ PORT=$(snapctl get port || true)
 if [ -n "$PORT" ]; then
   sed -i "s/^port:.*/port: $PORT/" "$CONFIG_FILE"
 fi
+
+TITLE=$(snapctl get title || true)
+if [ -n "$PORT" ]; then
+  sed -i "s/^title:.*/title: $TITLE/" "$CONFIG_FILE"
+fi
