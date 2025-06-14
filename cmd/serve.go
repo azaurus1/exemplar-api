@@ -84,7 +84,7 @@ func serve(cmd *cobra.Command, args []string) {
 		go func() {
 			log.Println("API listening on", listenStr)
 			if err = srv.ListenAndServe(); err != nil {
-				// dont panic here, or you'll kill the whole application due to no recover()
+				// dont panic here, or you'll kill the whole application due to no recover()!
 				log.Println(err)
 			}
 		}()
@@ -97,7 +97,7 @@ func serve(cmd *cobra.Command, args []string) {
 		_ = srv.Shutdown(ctx)
 		cancel()
 
-		// Reload config values
+		// reload config
 		err = viper.Unmarshal(cfg)
 		if err != nil {
 			log.Println(err)
