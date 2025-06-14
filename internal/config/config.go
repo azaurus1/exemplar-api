@@ -7,7 +7,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-func InitConfig() {
+type Config struct {
+	Port string `mapstructure:"port"`
+}
+
+func (c *Config) InitConfig(onChange chan struct{}) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".") // will be SNAP_DATA at runtime
@@ -17,8 +21,13 @@ func InitConfig() {
 		log.Fatalf("error reading config: %v", err)
 	}
 
+	if err := viper.Unmarshal(&c); err != nil {
+		log.Fatalf("unable to decode config into struct: %v", err)
+	}
+
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		log.Printf("Config file changed: %s", e.Name)
+		onChange <- struct{}{}
 	})
 }

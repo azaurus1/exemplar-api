@@ -4,12 +4,14 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"exemplar-api/internal/config"
 	"exemplar-api/internal/server"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/spf13/cobra"
@@ -30,15 +32,6 @@ to quickly create a Cobra application.`,
 }
 
 func serve(cmd *cobra.Command, args []string) {
-
-	// initialise our live-reload config
-	config.InitConfig()
-
-	testPrint := viper.GetString("testPrint")
-
-	port := viper.GetString("port")
-
-	log.Println("Test Print: ", testPrint)
 
 	// get migrations
 	migrations := &migrate.FileMigrationSource{
@@ -72,14 +65,45 @@ func serve(cmd *cobra.Command, args []string) {
 	}
 	log.Printf("Applied %d migrations", n)
 
+	// make a channel for signalling reloaded config
+	reloadCh := make(chan struct{})
+	cfg := &config.Config{}
+
+	cfg.InitConfig(reloadCh)
+
 	handler := server.NewHandler(db)
 
-	listenStr := fmt.Sprintf(":%s", port)
+	for {
+		listenStr := fmt.Sprintf(":%s", cfg.Port)
 
-	log.Println("API listening on", listenStr)
-	if err = http.ListenAndServe(listenStr, handler); err != nil {
-		log.Panic(err)
+		srv := &http.Server{
+			Addr:    listenStr,
+			Handler: handler,
+		}
+
+		go func() {
+			log.Println("API listening on", listenStr)
+			if err = srv.ListenAndServe(); err != nil {
+				// dont panic here, or you'll kill the whole application due to no recover()
+				log.Println(err)
+			}
+		}()
+
+		<-reloadCh
+
+		log.Println("Config has been changed, reloading...")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		_ = srv.Shutdown(ctx)
+		cancel()
+
+		// Reload config values
+		err = viper.Unmarshal(cfg)
+		if err != nil {
+			log.Println(err)
+		}
 	}
+
 }
 
 func init() {
