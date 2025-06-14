@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+
+# daemons dont run from the same directory as commands
+# so we copy the migrations from the snap to the snap_data
+
+echo "Copying migrations to SNAP_DATA"
+cp -ru "$SNAP/migrations/" "$SNAP_DATA/migrations/"
+
