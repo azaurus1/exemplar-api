@@ -1,0 +1,27 @@
+name: exemplar-api
+base: core22
+version: '1.0.0'
+summary: A sample Go API
+description: |
+  This is a basic example of a Go API server.
+
+grade: stable
+confinement: strict
+
+parts:
+  exemplar-api:
+    plugin: go
+    source: .
+    build-snaps:
+      - go
+    override-build: |
+      go build -o exemplar-api .
+      install -Dm755 exemplar-api "${SNAPCRAFT_PART_INSTALL}/exemplar-api"
+      cp -r ./migrations "${CRAFT_PART_INSTALL}"
+
+apps:
+  exemplar-api:
+    command: exemplar-api serve
+    daemon: simple
+    plugs:
+      - network
