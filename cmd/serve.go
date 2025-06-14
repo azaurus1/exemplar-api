@@ -5,14 +5,15 @@ package cmd
 
 import (
 	"database/sql"
+	"exemplar-api/internal/config"
 	"exemplar-api/internal/server"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	migrate "github.com/rubenv/sql-migrate"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // serveCmd represents the serve command
@@ -30,8 +31,14 @@ to quickly create a Cobra application.`,
 
 func serve(cmd *cobra.Command, args []string) {
 
-	cwd, _ := os.Getwd()
-	fmt.Println("CWD:", cwd)
+	// initialise our live-reload config
+	config.InitConfig()
+
+	testPrint := viper.GetString("testPrint")
+
+	port := viper.GetString("port")
+
+	log.Println("Test Print: ", testPrint)
 
 	// get migrations
 	migrations := &migrate.FileMigrationSource{
@@ -67,8 +74,12 @@ func serve(cmd *cobra.Command, args []string) {
 
 	handler := server.NewHandler(db)
 
-	log.Println("API listening on http://localhost:8080")
-	http.ListenAndServe(":8080", handler)
+	listenStr := fmt.Sprintf(":%s", port)
+
+	log.Println("API listening on", listenStr)
+	if err = http.ListenAndServe(listenStr, handler); err != nil {
+		log.Panic(err)
+	}
 }
 
 func init() {

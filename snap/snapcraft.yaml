@@ -18,6 +18,7 @@ parts:
       go build -o exemplar-api .
       install -Dm755 exemplar-api "${SNAPCRAFT_PART_INSTALL}/exemplar-api"
       cp -r ./migrations "${CRAFT_PART_INSTALL}"
+      cp -r ./config.yaml "${CRAFT_PART_INSTALL}"
 
 apps:
   exemplar-api:
@@ -25,3 +26,4 @@ apps:
     daemon: simple
     plugs:
       - network
+      - network-bind

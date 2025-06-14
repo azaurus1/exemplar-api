@@ -7,4 +7,5 @@ set -e
 
 echo "Copying migrations to SNAP_DATA"
 cp -ru "$SNAP/migrations/" "$SNAP_DATA/migrations/"
+cp "$SNAP/config.yaml" "$SNAP_DATA/"
 
