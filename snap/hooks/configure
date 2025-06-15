@@ -12,3 +12,8 @@ TITLE=$(snapctl get title || true)
 if [ -n "$PORT" ]; then
   sed -i "s/^title:.*/title: $TITLE/" "$CONFIG_FILE"
 fi
+
+DSN=$(snapctl get dsn || true)
+if [ -n "$PORT" ]; then
+  sed -i "s/^dsn:.*/dsn: $TITLE/" "$CONFIG_FILE"
+fi

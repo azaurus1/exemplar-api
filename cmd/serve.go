@@ -38,12 +38,17 @@ func serve(cmd *cobra.Command, args []string) {
 		Dir: "./migrations",
 	}
 
+	// make a channel for signalling reloaded config
+	reloadCh := make(chan struct{})
+	cfg := &config.Config{}
+
+	cfg.InitConfig(reloadCh)
+
 	// conbnect to DB
 	// Connection string
-	connStr := "host=localhost port=5432 user=myuser password=mypassword dbname=mydb sslmode=disable"
 
 	// Open the connection
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("postgres", cfg.DSN)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
@@ -64,12 +69,6 @@ func serve(cmd *cobra.Command, args []string) {
 		log.Println("error performing migrations: ", err)
 	}
 	log.Printf("Applied %d migrations", n)
-
-	// make a channel for signalling reloaded config
-	reloadCh := make(chan struct{})
-	cfg := &config.Config{}
-
-	cfg.InitConfig(reloadCh)
 
 	handler := server.NewHandler(db)
 

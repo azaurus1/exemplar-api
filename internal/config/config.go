@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Port  string `mapstructure:"port"`
 	Title string `mapstructure:"title"`
+	DSN   string `mapstructure:"dsn"`
 }
 
 func (c *Config) InitConfig(onChange chan struct{}) {
