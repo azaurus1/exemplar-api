@@ -47,32 +47,32 @@ func serve(cmd *cobra.Command, args []string) {
 	// conbnect to DB
 	// Connection string
 
-	// Open the connection
-	db, err := sql.Open("postgres", cfg.DSN)
-	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
-	}
-	defer db.Close()
-
-	// Ping to test connection
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
-	}
-
-	fmt.Println("Successfully connected to PostgreSQL!")
-
-	// perform migrations
-	log.Println("Performing migrations!")
-
-	n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
-	if err != nil {
-		log.Println("error performing migrations: ", err)
-	}
-	log.Printf("Applied %d migrations", n)
-
-	handler := server.NewHandler(db)
-
 	for {
+
+		// Open the connection
+		db, err := sql.Open("postgres", cfg.DSN)
+		if err != nil {
+			log.Fatalf("Failed to open database: %v", err)
+		}
+
+		// Ping to test connection
+		if err := db.Ping(); err != nil {
+			log.Fatalf("Failed to ping database: %v", err)
+		}
+
+		fmt.Println("Successfully connected to PostgreSQL!")
+
+		// perform migrations
+		log.Println("Performing migrations!")
+
+		n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
+		if err != nil {
+			log.Println("error performing migrations: ", err)
+		}
+		log.Printf("Applied %d migrations", n)
+
+		handler := server.NewHandler(db)
+
 		listenStr := fmt.Sprintf(":%s", cfg.Port)
 		title := cfg.Title
 
