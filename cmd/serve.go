@@ -13,10 +13,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/amacneil/dbmate/v2/pkg/dbmate"
-	_ "github.com/lib/pq"
+	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -58,6 +60,7 @@ func serve(cmd *cobra.Command, args []string) {
 			log.Println("error parsing dsnurl: ", err)
 		}
 		dbMigrations := dbmate.New(u)
+		dbMigrations.MigrationsDir = []string{"sql"}
 
 		// get migrations
 		dbMigrations.FS = migrations.EmbeddedMigrations
@@ -93,9 +96,30 @@ func serve(cmd *cobra.Command, args []string) {
 		handler := server.NewHandler(db)
 		r.HandleFunc("GET /notes", handler.ListNotes)
 		r.HandleFunc("POST /notes", handler.CreateNote)
-		r.HandleFunc("GET /notes", handler.GetNote)
-		r.HandleFunc("PUT /notes", handler.CreateNote)
-		r.HandleFunc("DELETE /notes", handler.CreateNote)
+
+		r.HandleFunc("/notes/", func(w http.ResponseWriter, r *http.Request) {
+			id := strings.TrimPrefix(r.URL.Path, "/notes/")
+			if id == "" || strings.Contains(id, "/") {
+				http.NotFound(w, r)
+				return
+			}
+
+			idInt, err := strconv.Atoi(id)
+			if err != nil {
+				log.Println("error converting string to int: ", err)
+			}
+
+			switch r.Method {
+			case http.MethodGet:
+				handler.GetNote(w, r, idInt)
+			case http.MethodPut:
+				handler.UpdateNote(w, r, idInt)
+			case http.MethodDelete:
+				handler.DeleteNote(w, r, idInt)
+			default:
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			}
+		})
 
 		listenStr := fmt.Sprintf(":%s", cfg.Port)
 		title := cfg.Title

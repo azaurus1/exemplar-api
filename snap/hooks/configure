@@ -9,11 +9,41 @@ if [ -n "$PORT" ]; then
 fi
 
 TITLE=$(snapctl get title || true)
-if [ -n "$PORT" ]; then
+if [ -n "$TITLE" ]; then
   sed -i "s/^title:.*/title: $TITLE/" "$CONFIG_FILE"
 fi
 
 DSN=$(snapctl get dsn || true)
-if [ -n "$PORT" ]; then
-  sed -i "s/^dsn:.*/dsn: $TITLE/" "$CONFIG_FILE"
+if [ -n "$DSN" ]; then
+  sed -i "s/^dsn:.*/dsn: $DSN/" "$CONFIG_FILE"
+fi
+
+DB_HOST=$(snapctl get db_host || true)
+if [ -n "$DB_HOST" ]; then
+  sed -i "s/^db_host:.*/db_host: $DB_HOST/" "$CONFIG_FILE"
+fi
+
+DB_PORT=$(snapctl get db_port || true)
+if [ -n "$DB_PORT" ]; then
+  sed -i "s/^db_port:.*/db_port: $DB_PORT/" "$CONFIG_FILE"
+fi
+
+DB_NAME=$(snapctl get db_name || true)
+if [ -n "$DB_NAME" ]; then
+  sed -i "s/^db_name:.*/db_name: $DB_NAME/" "$CONFIG_FILE"
+fi
+
+DB_USER=$(snapctl get db_user || true)
+if [ -n "$DB_USER" ]; then
+  sed -i "s/^db_user:.*/db_user: $DB_USER/" "$CONFIG_FILE"
+fi
+
+DB_PASSWORD=$(snapctl get db_password || true)
+if [ -n "$DB_PASSWORD" ]; then
+  sed -i "s/^db_password:.*/db_password: $DB_PASSWORD/" "$CONFIG_FILE"
+fi
+
+DB_SSLMODE=$(snapctl get db_sslmode || true)
+if [ -n "$DB_SSLMODE" ]; then
+  sed -i "s/^db_sslmode:.*/db_sslmode: $DB_SSLMODE/" "$CONFIG_FILE"
 fi
