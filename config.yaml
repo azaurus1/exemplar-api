@@ -1,3 +1,9 @@
 port: 3000
 title: Test Title
 dsn: "host=localhost port=5432 user=myuser password=mypassword dbname=mydb sslmode=disable"
+db_host: "localhost"
+db_port: "5432"
+db_name: "mydb"
+db_user: "myuser"
+db_password: "mypassword"
+db_sslmode: "disable"
