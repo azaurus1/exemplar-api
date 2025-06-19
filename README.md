@@ -6,7 +6,7 @@ An exemplar snapified API service.
 Uses:
 - `postgres` as a database.
 - `sqlc` for generating database code from `sql`
-- `sql-migrate` for migrations
+- `dbmate` for migrations
 - `cobra` for commands
 - `viper` for config + live-reloads
 - Migrations
