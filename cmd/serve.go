@@ -7,13 +7,18 @@ import (
 	"context"
 	"database/sql"
 	"exemplar-api/internal/config"
+	"exemplar-api/internal/migrations"
 	"exemplar-api/internal/server"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
-	migrate "github.com/rubenv/sql-migrate"
+	"github.com/amacneil/dbmate/v2/pkg/dbmate"
+	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -33,11 +38,6 @@ to quickly create a Cobra application.`,
 
 func serve(cmd *cobra.Command, args []string) {
 
-	// get migrations
-	migrations := &migrate.FileMigrationSource{
-		Dir: "./migrations",
-	}
-
 	// make a channel for signalling reloaded config
 	reloadCh := make(chan struct{})
 	cfg := &config.Config{}
@@ -48,6 +48,37 @@ func serve(cmd *cobra.Command, args []string) {
 	// Connection string
 
 	for {
+
+		// parse DSN to url
+		dsnUrl, err := buildDatabaseURL("postgres", cfg.DBHost, cfg.DBPort, cfg.DBName, cfg.DBUser, cfg.DBPassword, cfg.DBSSLMode)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		u, err := url.Parse(dsnUrl.String())
+		if err != nil {
+			log.Println("error parsing dsnurl: ", err)
+		}
+		dbMigrations := dbmate.New(u)
+		dbMigrations.MigrationsDir = []string{"sql"}
+
+		// get migrations
+		dbMigrations.FS = migrations.EmbeddedMigrations
+
+		migrations, err := dbMigrations.FindMigrations()
+		if err != nil {
+			log.Println("error finding migrations:", err)
+		}
+		for _, m := range migrations {
+			log.Println(m.Version, m.FilePath)
+		}
+
+		log.Println("Applying Migrations...")
+
+		err = dbMigrations.CreateAndMigrate()
+		if err != nil {
+			panic(err)
+		}
 
 		// Open the connection
 		db, err := sql.Open("postgres", cfg.DSN)
@@ -60,25 +91,42 @@ func serve(cmd *cobra.Command, args []string) {
 			log.Fatalf("Failed to ping database: %v", err)
 		}
 
-		fmt.Println("Successfully connected to PostgreSQL!")
-
-		// perform migrations
-		log.Println("Performing migrations!")
-
-		n, err := migrate.Exec(db, "postgres", migrations, migrate.Up)
-		if err != nil {
-			log.Println("error performing migrations: ", err)
-		}
-		log.Printf("Applied %d migrations", n)
+		r := http.NewServeMux()
 
 		handler := server.NewHandler(db)
+		r.HandleFunc("GET /notes", handler.ListNotes)
+		r.HandleFunc("POST /notes", handler.CreateNote)
+
+		r.HandleFunc("/notes/", func(w http.ResponseWriter, r *http.Request) {
+			id := strings.TrimPrefix(r.URL.Path, "/notes/")
+			if id == "" || strings.Contains(id, "/") {
+				http.NotFound(w, r)
+				return
+			}
+
+			idInt, err := strconv.Atoi(id)
+			if err != nil {
+				log.Println("error converting string to int: ", err)
+			}
+
+			switch r.Method {
+			case http.MethodGet:
+				handler.GetNote(w, r, idInt)
+			case http.MethodPut:
+				handler.UpdateNote(w, r, idInt)
+			case http.MethodDelete:
+				handler.DeleteNote(w, r, idInt)
+			default:
+				http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+			}
+		})
 
 		listenStr := fmt.Sprintf(":%s", cfg.Port)
 		title := cfg.Title
 
 		srv := &http.Server{
 			Addr:    listenStr,
-			Handler: handler,
+			Handler: r,
 		}
 
 		go func() {
@@ -121,4 +169,26 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// serveCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+// Function to build Database URL
+func buildDatabaseURL(driver, host, port, dbname, user, password, sslmode string) (*url.URL, error) {
+	if host == "" || port == "" || dbname == "" || user == "" || password == "" {
+		return nil, fmt.Errorf("missing required database connection parameters")
+	}
+
+	u := &url.URL{
+		Scheme: driver,
+		User:   url.UserPassword(user, password),
+		Host:   fmt.Sprintf("%s:%s", host, port),
+		Path:   "/" + dbname,
+	}
+
+	if sslmode != "" {
+		query := url.Values{}
+		query.Add("sslmode", sslmode)
+		u.RawQuery = query.Encode()
+	}
+
+	return u, nil
 }

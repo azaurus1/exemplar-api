@@ -40,8 +40,9 @@ func (h *Handler) ListNotes(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(notes)
 }
 
-func (h *Handler) GetNote(w http.ResponseWriter, r *http.Request, id int32) {
-	note, err := h.Q.GetNote(r.Context(), id)
+func (h *Handler) GetNote(w http.ResponseWriter, r *http.Request, id int) {
+
+	note, err := h.Q.GetNote(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -51,7 +52,7 @@ func (h *Handler) GetNote(w http.ResponseWriter, r *http.Request, id int32) {
 	json.NewEncoder(w).Encode(note)
 }
 
-func (h *Handler) UpdateNote(w http.ResponseWriter, r *http.Request, id int32) {
+func (h *Handler) UpdateNote(w http.ResponseWriter, r *http.Request, id int) {
 
 	var req UpdateRequest
 
@@ -61,7 +62,7 @@ func (h *Handler) UpdateNote(w http.ResponseWriter, r *http.Request, id int32) {
 	}
 
 	note, err := h.Q.UpdateNote(r.Context(), data.UpdateNoteParams{
-		ID:      id,
+		ID:      int32(id),
 		Title:   req.Title,
 		Content: sql.NullString{String: req.Content, Valid: req.Content != ""},
 	})
@@ -74,8 +75,8 @@ func (h *Handler) UpdateNote(w http.ResponseWriter, r *http.Request, id int32) {
 	json.NewEncoder(w).Encode(note)
 }
 
-func (h *Handler) DeleteNote(w http.ResponseWriter, r *http.Request, id int32) {
-	err := h.Q.DeleteNote(r.Context(), id)
+func (h *Handler) DeleteNote(w http.ResponseWriter, r *http.Request, id int) {
+	err := h.Q.DeleteNote(r.Context(), int32(id))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
